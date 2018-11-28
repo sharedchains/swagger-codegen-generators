@@ -38,9 +38,15 @@ public class {{classname}}Test {
     @Test
     public void {{operationId}}Test() throws ApiException {
         {{#parameters}}
-        {{{dataType}}} {{paramName}} = null;
+            {{{dataType}}} {{paramName}} = null;
         {{/parameters}}
+    {{#vendorExtensions.x-parameterAsObject}}
+        {{vendorExtensions.x-parameterAsObject}} params = new {{vendorExtensions.x-parameterAsObject}}({{#parameters}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}});
+        {{#returnType}}{{{returnType}}} response = {{/returnType}}api.{{operationId}}(params);
+    {{/vendorExtensions.x-parameterAsObject}}
+    {{^vendorExtensions.x-parameterAsObject}}
         {{#returnType}}{{{returnType}}} response = {{/returnType}}api.{{operationId}}({{#parameters}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}});
+    {{/vendorExtensions.x-parameterAsObject}}
 
         // TODO: test validations
     }

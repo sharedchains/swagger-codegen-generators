@@ -43,9 +43,14 @@ public class {{classname}} {
   /**
    * {{summary}}
    * {{notes}}
+    {{#vendorExtensions.x-parameterAsObject}}
+   * @param {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}
+    {{/vendorExtensions.x-parameterAsObject}}
+   {{^vendorExtensions.x-parameterAsObject}}
    {{#parameters}}
    * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{{.}}}{{/defaultValue}}){{/required}}
    {{/parameters}}
+   {{/vendorExtensions.x-parameterAsObject}}
    {{#returnType}}
    * @return {{returnType}}
    {{/returnType}}
@@ -61,38 +66,82 @@ public class {{classname}} {
   {{#isDeprecated}}
   @Deprecated
   {{/isDeprecated}}
-  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#parameters}}{{{dataType}}} {{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}}) throws ApiException {
-    Object {{localVariablePrefix}}localVarPostBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
-    {{#parameters}}
-    {{#required}}
-    // verify the required parameter '{{paramName}}' is set
-    if ({{paramName}} == null) {
-      throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{operationId}}");
-    }
-    {{/required}}
-    {{/parameters}}
-    // create path and map variables
-    String {{localVariablePrefix}}localVarPath = "{{{path}}}"{{#pathParams}}
-      .replaceAll("\\{" + "{{baseName}}" + "\\}", {{localVariablePrefix}}apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
+  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}(
+    {{#vendorExtensions.x-parameterAsObject}}
+       {{vendorExtensions.x-parameterAsObject}} {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}
+    {{/vendorExtensions.x-parameterAsObject}}
+    {{^vendorExtensions.x-parameterAsObject}}
+        {{#parameters}}{{{dataType}}} {{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}}
+    {{/vendorExtensions.x-parameterAsObject}}
+    ) throws ApiException {
+    {{#vendorExtensions.x-parameterAsObject}}
+        Object {{localVariablePrefix}}localVarPostBody = {{#bodyParam}}{{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}(){{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
+        {{#parameters}}
+        {{#required}}
+        // verify the required parameter '{{paramName}}' is set
+        // {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}
+        // {{vendorExtensions.x-parameterAsObject}}
+        if ({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}() == null) {
+          throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{operationId}}");
+        }
+        {{/required}}
+        {{/parameters}}
+        // create path and map variables
+        String {{localVariablePrefix}}localVarPath = "{{{path}}}"{{#pathParams}}
+          .replaceAll("\\{" + "{{baseName}}" + "\\}", {{localVariablePrefix}}apiClient.escapeString({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}().toString())){{/pathParams}};
 
-    // query params
-    {{javaUtilPrefix}}List<Pair> {{localVariablePrefix}}localVarQueryParams = new {{javaUtilPrefix}}ArrayList<Pair>();
-    {{javaUtilPrefix}}Map<String, String> {{localVariablePrefix}}localVarHeaderParams = new {{javaUtilPrefix}}HashMap<String, String>();
-    {{javaUtilPrefix}}Map<String, Object> {{localVariablePrefix}}localVarFormParams = new {{javaUtilPrefix}}HashMap<String, Object>();
+        // query params
+        {{javaUtilPrefix}}List<Pair> {{localVariablePrefix}}localVarQueryParams = new {{javaUtilPrefix}}ArrayList<Pair>();
+        {{javaUtilPrefix}}Map<String, String> {{localVariablePrefix}}localVarHeaderParams = new {{javaUtilPrefix}}HashMap<String, String>();
+        {{javaUtilPrefix}}Map<String, Object> {{localVariablePrefix}}localVarFormParams = new {{javaUtilPrefix}}HashMap<String, Object>();
+        
+        {{#queryParams}}
+        {{localVariablePrefix}}localVarQueryParams.addAll({{localVariablePrefix}}apiClient.parameterToPairs("{{#collectionFormat}}{{{collectionFormat}}}{{/collectionFormat}}", "{{baseName}}", {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}()));
+        {{/queryParams}}
+        
+        {{#headerParams}}
+        if ({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}() != null)
+          {{localVariablePrefix}}localVarHeaderParams.put("{{baseName}}", {{localVariablePrefix}}apiClient.parameterToString({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}()));
+        {{/headerParams}}
 
-    {{#queryParams}}
-    {{localVariablePrefix}}localVarQueryParams.addAll({{localVariablePrefix}}apiClient.parameterToPairs("{{#collectionFormat}}{{{collectionFormat}}}{{/collectionFormat}}", "{{baseName}}", {{paramName}}));
-    {{/queryParams}}
+        {{#formParams}}
+        if ({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}() != null)
+          {{localVariablePrefix}}localVarFormParams.put("{{baseName}}", {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}());
+        {{/formParams}}
+    {{/vendorExtensions.x-parameterAsObject}}
+    {{^vendorExtensions.x-parameterAsObject}}
+        Object {{localVariablePrefix}}localVarPostBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
+        {{#parameters}}
+        {{#required}}
+        // verify the required parameter '{{paramName}}' is set
+        if ({{paramName}} == null) {
+          throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{operationId}}");
+        }
+        {{/required}}
+        {{/parameters}}
+        // create path and map variables
+        String {{localVariablePrefix}}localVarPath = "{{{path}}}"{{#pathParams}}
+          .replaceAll("\\{" + "{{baseName}}" + "\\}", {{localVariablePrefix}}apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
 
-    {{#headerParams}}
-    if ({{paramName}} != null)
-      {{localVariablePrefix}}localVarHeaderParams.put("{{baseName}}", {{localVariablePrefix}}apiClient.parameterToString({{paramName}}));
-    {{/headerParams}}
+        // query params
+        {{javaUtilPrefix}}List<Pair> {{localVariablePrefix}}localVarQueryParams = new {{javaUtilPrefix}}ArrayList<Pair>();
+        {{javaUtilPrefix}}Map<String, String> {{localVariablePrefix}}localVarHeaderParams = new {{javaUtilPrefix}}HashMap<String, String>();
+        {{javaUtilPrefix}}Map<String, Object> {{localVariablePrefix}}localVarFormParams = new {{javaUtilPrefix}}HashMap<String, Object>();
 
-    {{#formParams}}
-    if ({{paramName}} != null)
-      {{localVariablePrefix}}localVarFormParams.put("{{baseName}}", {{paramName}});
-    {{/formParams}}
+        {{#queryParams}}
+        {{localVariablePrefix}}localVarQueryParams.addAll({{localVariablePrefix}}apiClient.parameterToPairs("{{#collectionFormat}}{{{collectionFormat}}}{{/collectionFormat}}", "{{baseName}}", {{paramName}}));
+        {{/queryParams}}
+
+        {{#headerParams}}
+        if ({{paramName}} != null)
+          {{localVariablePrefix}}localVarHeaderParams.put("{{baseName}}", {{localVariablePrefix}}apiClient.parameterToString({{paramName}}));
+        {{/headerParams}}
+
+        {{#formParams}}
+        if ({{paramName}} != null)
+          {{localVariablePrefix}}localVarFormParams.put("{{baseName}}", {{paramName}});
+        {{/formParams}}
+    {{/vendorExtensions.x-parameterAsObject}}
 
     final String[] {{localVariablePrefix}}localVarAccepts = {
       {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}}
@@ -113,6 +162,30 @@ public class {{classname}} {
     {{localVariablePrefix}}apiClient.invokeAPI({{localVariablePrefix}}localVarPath, "{{httpMethod}}", {{localVariablePrefix}}localVarQueryParams, {{localVariablePrefix}}localVarPostBody, {{localVariablePrefix}}localVarHeaderParams, {{localVariablePrefix}}localVarFormParams, {{localVariablePrefix}}localVarAccept, {{localVariablePrefix}}localVarContentType, {{localVariablePrefix}}localVarAuthNames, null);
     {{/returnType}}
   }
+
+    {{#vendorExtensions.x-parameterAsObject}}
+        public static class {{vendorExtensions.x-parameterAsObject}} {
+            {{#parameters}}
+                    private {{{dataType}}} {{paramName}};
+            {{/parameters}}
+
+            public {{vendorExtensions.x-parameterAsObject}}({{#parameters}}{{{dataType}}} {{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}}) {
+                {{#parameters}}
+                    this.{{paramName}} = {{paramName}};
+                {{/parameters}}
+            }
+
+            {{#parameters}}
+                    public void set{{capitalize paramName}}({{{dataType}}} {{paramName}}) {
+                        this.{{paramName}} = {{paramName}};
+                    }
+
+                    public {{{dataType}}} get{{capitalize paramName}}() {
+                        return this.{{paramName}};
+                    }
+            {{/parameters}}
+        }
+    {{/vendorExtensions.x-parameterAsObject}}
   {{/contents}}
   {{/operation}}
 }
