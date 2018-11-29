@@ -36,7 +36,13 @@ public class {{classname}}Test {
         {{#parameters}}
         {{{dataType}}} {{paramName}} = null;
         {{/parameters}}
-        {{#returnType}}{{{returnType}}} response = {{/returnType}}api.{{operationId}}({{#parameters}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}});
+        {{#vendorExtensions.x-parameterAsObject}}
+            {{vendorExtensions.x-parameterAsObject}} params = new {{vendorExtensions.x-parameterAsObject}}({{#parameters}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}});
+            {{#returnType}}{{{returnType}}} response = {{/returnType}}api.{{operationId}}(params);
+        {{/vendorExtensions.x-parameterAsObject}}
+        {{^vendorExtensions.x-parameterAsObject}}
+            {{#returnType}}{{{returnType}}} response = {{/returnType}}api.{{operationId}}({{#parameters}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/parameters}});
+        {{/vendorExtensions.x-parameterAsObject}}
 
         // TODO: test validations
     }

@@ -79,8 +79,6 @@ public class {{classname}} {
         {{#parameters}}
         {{#required}}
         // verify the required parameter '{{paramName}}' is set
-        // {{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}
-        // {{vendorExtensions.x-parameterAsObject}}
         if ({{lower (substring vendorExtensions.x-parameterAsObject 0 1)}}{{substring vendorExtensions.x-parameterAsObject 1}}.get{{capitalize paramName}}() == null) {
           throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{operationId}}");
         }
