@@ -1029,7 +1029,10 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
                 if (parametersAsObject) {
                     if (operation.getParameters() != null && operation.getParameters().size() > parametersThreshold) {
                         operation.addExtension("x-parameterAsObject", StringUtils.capitalize(operation.getOperationId()) + "Parameters");
-                    } else if (operation.equals(pathItem.getPost()) && operation.getRequestBody().getContent().size() > parametersThreshold) {
+                    } else if (operation.equals(pathItem.getPost()) && 
+                                operation.getRequestBody() != null &&
+                                operation.getRequestBody().getContent() != null &&
+                                operation.getRequestBody().getContent().size() > parametersThreshold) {
                         operation.addExtension("x-parameterAsObject", StringUtils.capitalize(operation.getOperationId()) + "Parameters");
                     }
                 }
@@ -1140,7 +1143,10 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
         CodegenOperation op = super.fromOperation(path, httpMethod, operation, schemas, openAPI);
         if (parametersAsObject) {
             if ((operation.getParameters() != null && operation.getParameters().size() > parametersThreshold)
-                    || ("POST".equalsIgnoreCase(httpMethod) && operation.getRequestBody().getContent().size() > parametersThreshold)) {
+                    || (   "POST".equalsIgnoreCase(httpMethod) &&
+                            operation.getRequestBody() != null &&
+                            operation.getRequestBody().getContent() != null &&
+                            operation.getRequestBody().getContent().size() > parametersThreshold)) {
                 String parameterAsObject = (String) op.getVendorExtensions().get("x-parameterAsObject");
                 if (op.bodyParam != null) {
                     addVendorExtension(op.bodyParam, "x-parameterAsObject", parameterAsObject);
@@ -1208,9 +1214,9 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
         // remove everything else other than word, number and _
         // $php_variable => php_variable
         if (allowUnicodeIdentifiers) { //could be converted to a single line with ?: operator
-            name = Pattern.compile("\\W+", Pattern.UNICODE_CHARACTER_CLASS).matcher(name).replaceAll(StringUtils.EMPTY);
+            name = Pattern.compile("\\W-[\\$]", Pattern.UNICODE_CHARACTER_CLASS).matcher(name).replaceAll(StringUtils.EMPTY);
         } else {
-            name = name.replaceAll("\\W+", StringUtils.EMPTY);
+            name = name.replaceAll("\\W-[\\$]", StringUtils.EMPTY);
         }
         return name;
     }

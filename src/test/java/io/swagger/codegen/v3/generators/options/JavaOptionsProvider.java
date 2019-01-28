@@ -75,6 +75,8 @@ public class JavaOptionsProvider implements OptionsProvider {
                 .put(CodegenConstants.ALLOW_UNICODE_IDENTIFIERS, ALLOW_UNICODE_IDENTIFIERS_VALUE)
                 .put(CodegenConstants.USE_OAS2, "true")
                 //.put("supportJava6", "true")
+                .put(JavaClientCodegen.PARAMS_AS_OBJ, "true")
+                .put(JavaClientCodegen.OBJ_PARAMS_THRESHOLD, "2")
                 .build();
     }
 
