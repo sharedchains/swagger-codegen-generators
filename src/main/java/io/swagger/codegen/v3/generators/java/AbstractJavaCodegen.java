@@ -20,6 +20,7 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.MapSchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -393,12 +394,13 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
         } else {
             importMapping.put("Schema", "io.swagger.v3.oas.annotations.media.Schema");
         }
-        
+
         importMapping.put("JsonProperty", "com.fasterxml.jackson.annotation.JsonProperty");
         importMapping.put("JsonSubTypes", "com.fasterxml.jackson.annotation.JsonSubTypes");
         importMapping.put("JsonTypeInfo", "com.fasterxml.jackson.annotation.JsonTypeInfo");
         importMapping.put("JsonCreator", "com.fasterxml.jackson.annotation.JsonCreator");
         importMapping.put("JsonValue", "com.fasterxml.jackson.annotation.JsonValue");
+        importMapping.put("JsonTypeId", "com.fasterxml.jackson.annotation.JsonTypeId");
         importMapping.put("SerializedName", "com.google.gson.annotations.SerializedName");
         importMapping.put("TypeAdapter", "com.google.gson.TypeAdapter");
         importMapping.put("JsonAdapter", "com.google.gson.annotations.JsonAdapter");
@@ -414,7 +416,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
         if(additionalProperties.containsKey(JAVA8_MODE)) {
             setJava8Mode(Boolean.parseBoolean(additionalProperties.get(JAVA8_MODE).toString()));
             if ( java8Mode ) {
-                additionalProperties.put("java8", "true");
+                additionalProperties.put("java8", true);
             }
         }
 
@@ -451,7 +453,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
             importMapping.put("LocalDate", "org.joda.time.LocalDate");
             importMapping.put("DateTime", "org.joda.time.DateTime");
         } else if (dateLibrary.startsWith("java8")) {
-            additionalProperties.put("java8", "true");
+            additionalProperties.put("java8", true);
             additionalProperties.put("jsr310", "true");
             typeMapping.put("date", "LocalDate");
             importMapping.put("LocalDate", "java.time.LocalDate");
@@ -463,7 +465,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
                 importMapping.put("OffsetDateTime", "java.time.OffsetDateTime");
             }
         } else if (dateLibrary.equals("legacy")) {
-            additionalProperties.put("legacyDates", "true");
+            additionalProperties.put("legacyDates", true);
         }
     }
 
@@ -679,13 +681,16 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
             }
             return String.format("%s<%s>", getSchemaType(propertySchema), getTypeDeclaration(inner));
             // return getSwaggerType(propertySchema) + "<" + getTypeDeclaration(inner) + ">";
-        } else if (propertySchema instanceof MapSchema || propertySchema.getAdditionalProperties() != null) {
+        } else if (propertySchema instanceof MapSchema && hasSchemaProperties(propertySchema)) {
             Schema inner = (Schema) propertySchema.getAdditionalProperties();
             if (inner == null) {
                 LOGGER.warn(propertySchema.getName() + "(map property) does not have a proper inner type defined");
                 // TODO maybe better defaulting to StringProperty than returning null
                 return null;
             }
+            return getSchemaType(propertySchema) + "<String, " + getTypeDeclaration(inner) + ">";
+        } else if (propertySchema instanceof MapSchema && hasTrueAdditionalProperties(propertySchema)) {
+            Schema inner = new ObjectSchema();
             return getSchemaType(propertySchema) + "<String, " + getTypeDeclaration(inner) + ">";
         }
         return super.getTypeDeclaration(propertySchema);
@@ -723,7 +728,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
             }
 
             return String.format(pattern, typeDeclaration);
-        } else if (schema instanceof MapSchema) {
+        } else if (schema instanceof MapSchema && hasSchemaProperties(schema)) {
             final String pattern;
             if (fullJavaUtil) {
                 pattern = "new java.util.HashMap<%s>()";
@@ -735,6 +740,27 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
             }
 
             String typeDeclaration = String.format("String, %s", getTypeDeclaration((Schema) schema.getAdditionalProperties()));
+            Object java8obj = additionalProperties.get("java8");
+            if (java8obj != null) {
+                Boolean java8 = Boolean.valueOf(java8obj.toString());
+                if (java8 != null && java8) {
+                    typeDeclaration = "";
+                }
+            }
+
+            return String.format(pattern, typeDeclaration);
+        } else if (schema instanceof MapSchema && hasTrueAdditionalProperties(schema)) {
+            final String pattern;
+            if (fullJavaUtil) {
+                pattern = "new java.util.HashMap<%s>()";
+            } else {
+                pattern = "new HashMap<%s>()";
+            }
+            if (schema.getAdditionalProperties() == null) {
+                return null;
+            }
+            Schema inner = new ObjectSchema();
+            String typeDeclaration = String.format("String, %s", getTypeDeclaration(inner));
             Object java8obj = additionalProperties.get("java8");
             if (java8obj != null) {
                 Boolean java8 = Boolean.valueOf(java8obj.toString());
@@ -943,6 +969,12 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
                 model.imports.add("ApiModel");
             } else {
                 model.imports.add("Schema");
+            }
+        }
+        if (model.discriminator != null && model.discriminator.getPropertyName().equals(property.baseName)) {
+            property.vendorExtensions.put("x-is-discriminator-property", true);
+            if (additionalProperties.containsKey("jackson")) {
+                model.imports.add("JsonTypeId");
             }
         }
     }
@@ -1208,6 +1240,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
                 .replaceAll("\\(", "_")
                 .replaceAll("\\)", StringUtils.EMPTY)
                 .replaceAll("\\.", "_")
+                .replaceAll("@", "_at_")
                 .replaceAll("-", "_")
                 .replaceAll(" ", "_");
 
@@ -1427,7 +1460,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
     public void setSupportJava6(boolean value) {
         this.supportJava6 = value;
     }
-    
+
     public String toRegularExpression(String pattern) {
         return escapeText(pattern);
     }
@@ -1486,7 +1519,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegenConfig {
                         .value(Boolean.FALSE.toString()));
             }
         }
-        
+
         super.setLanguageArguments(languageArguments);
     }
 }

@@ -1,21 +1,21 @@
 package {{package}};
 
-{{^jdk8}}
+{{#fullController}}
 {{#imports}}import {{import}};
 {{/imports}}
-{{/jdk8}}
+{{/fullController}}
 {{^isDelegate}}
 import com.fasterxml.jackson.databind.ObjectMapper;
 {{/isDelegate}}
-{{^jdk8}}
+{{#fullController}}
 import io.swagger.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-{{/jdk8}}
+{{/fullController}}
 import org.springframework.stereotype.Controller;
-{{^jdk8}}
+{{#fullController}}
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -27,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.validation.constraints.*;
 import javax.validation.Valid;
     {{/useBeanValidation}}
-{{/jdk8}}
+{{/fullController}}
 {{^isDelegate}}
 import javax.servlet.http.HttpServletRequest;
     {{#jdk8}}
@@ -39,15 +39,16 @@ import java.util.Optional;
 import java.util.Optional;
     {{/useOptional}}
 {{/jdk8-no-delegate}}
-{{^jdk8}}
+{{#fullController}}
     {{^isDelegate}}
 import java.io.IOException;
     {{/isDelegate}}
 import java.util.List;
+import java.util.Map;
     {{#async}}
 import java.util.concurrent.Callable;
     {{/async}}
-{{/jdk8}}
+{{/fullController}}
 {{>generatedAnnotation}}
 @Controller
 {{#operations}}
@@ -69,10 +70,10 @@ public class {{classname}}Controller implements {{classname}} {
     {{/jdk8}}
 {{/isDelegate}}
 {{^isDelegate}}
-    {{^jdk8}}
+    {{#fullController}}
     private static final Logger log = LoggerFactory.getLogger({{classname}}Controller.class);
 
-    {{/jdk8}}
+    {{/fullController}}
     private final ObjectMapper objectMapper;
 
     private final HttpServletRequest request;
@@ -96,9 +97,10 @@ public class {{classname}}Controller implements {{classname}} {
     {{/jdk8}}
 
 {{/isDelegate}}
-{{^jdk8}}
+{{#fullController}}
 {{#operation}}
-    public {{#async}}Callable<{{/async}}ResponseEntity<{{>returnTypes}}>{{#async}}>{{/async}} {{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}}{{#has this 'more'}},{{/has}}{{/allParams}}) {
+{{#contents}}
+    public {{#async}}Callable<{{/async}}ResponseEntity<{{>returnTypes}}>{{#async}}>{{/async}} {{operationId}}({{#parameters}}{{>queryParams}}{{>pathParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}},{{/hasMore}}{{/parameters}}) {
         {{^isDelegate}}
         {{^async}}
         String accept = request.getHeader("Accept");
@@ -137,11 +139,12 @@ public class {{classname}}Controller implements {{classname}} {
         {{/async}}
         {{/isDelegate}}
         {{#isDelegate}}
-        return delegate.{{operationId}}({{#allParams}}{{paramName}}{{#has this 'more'}}, {{/has}}{{/allParams}});
+        return delegate.{{operationId}}({{#parameters}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/parameters}});
         {{/isDelegate}}
     }
 
+{{/contents}}
 {{/operation}}
-{{/jdk8}}
+{{/fullController}}
 }
 {{/operations}}

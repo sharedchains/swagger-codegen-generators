@@ -17,6 +17,7 @@ import io.swagger.codegen.v3.CodegenOperation;
 import io.swagger.codegen.v3.SupportingFile;
 import io.swagger.codegen.v3.utils.SemVer;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.FileSchema;
 import io.swagger.v3.oas.models.media.MapSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
@@ -38,6 +39,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
     public static final String SNAPSHOT = "snapshot";
     public static final String WITH_INTERFACES = "withInterfaces";
     public static final String NG_VERSION = "ngVersion";
+    public static final String NG_PACKAGR = "useNgPackagr";
 
     protected String npmName = null;
     protected String npmVersion = "1.0.0";
@@ -57,11 +59,12 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
 
     @Override
     protected void addAdditionPropertiesToCodeGenModel(CodegenModel codegenModel, Schema schema) {
-        if (schema.getAdditionalProperties() == null) {
-            return;
+        if (schema instanceof MapSchema  && hasSchemaProperties(schema)) {
+            codegenModel.additionalPropertiesType = getTypeDeclaration((Schema) schema.getAdditionalProperties());
+            addImport(codegenModel, codegenModel.additionalPropertiesType);
+        } else if (schema instanceof MapSchema && hasTrueAdditionalProperties(schema)) {
+            codegenModel.additionalPropertiesType = getTypeDeclaration(new ObjectSchema());
         }
-        codegenModel.additionalPropertiesType = getTypeDeclaration((Schema) schema.getAdditionalProperties());
-        addImport(codegenModel, codegenModel.additionalPropertiesType);
     }
 
     @Override
@@ -79,7 +82,6 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         super.processOpts();
 
         if (StringUtils.isBlank(templateDir)) {
-            embeddedTemplateDir = templateDir = String.format("%s" + File.separator + "typescript-angular", DEFAULT_TEMPLATE_DIR);
             embeddedTemplateDir = templateDir = getTemplateDir();
         }
 
@@ -92,16 +94,37 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         modelPackage = "model";
 
         supportingFiles.add(
-                new SupportingFile("models.mustache", modelPackage().replace('.', File.separatorChar), "models.ts"));
+                new SupportingFile("models.mustache", modelPackage().replace('.', '/'), "models.ts"));
         supportingFiles
-                .add(new SupportingFile("apis.mustache", apiPackage().replace('.', File.separatorChar), "api.ts"));
+                .add(new SupportingFile("apis.mustache", apiPackage().replace('.', '/'), "api.ts"));
         supportingFiles.add(new SupportingFile("index.mustache", getIndexDirectory(), "index.ts"));
         supportingFiles.add(new SupportingFile("api.module.mustache", getIndexDirectory(), "api.module.ts"));
         supportingFiles.add(new SupportingFile("configuration.mustache", getIndexDirectory(), "configuration.ts"));
         supportingFiles.add(new SupportingFile("variables.mustache", getIndexDirectory(), "variables.ts"));
         supportingFiles.add(new SupportingFile("encoder.mustache", getIndexDirectory(), "encoder.ts"));
         supportingFiles.add(new SupportingFile("gitignore", "", ".gitignore"));
+        supportingFiles.add(new SupportingFile("npmignore", "", ".npmignore"));
         supportingFiles.add(new SupportingFile("git_push.sh.mustache", "", "git_push.sh"));
+
+        // determine NG version
+        SemVer ngVersion;
+        if (additionalProperties.containsKey(NG_VERSION)) {
+            ngVersion = new SemVer(additionalProperties.get(NG_VERSION).toString());
+        } else {
+            ngVersion = new SemVer("6.0.0");
+            LOGGER.info("generating code for Angular {} ...", ngVersion);
+            LOGGER.info("  (you can select the angular version by setting the additionalProperty ngVersion)");
+        }
+        additionalProperties.put(NG_VERSION, ngVersion);
+        additionalProperties.put(NG_PACKAGR, ngVersion.atLeast("4.0.0"));
+        additionalProperties.put("useRxJS6", ngVersion.atLeast("6.0.0"));
+        additionalProperties.put("injectionToken", ngVersion.atLeast("4.0.0") ? "InjectionToken" : "OpaqueToken");
+        additionalProperties.put("injectionTokenTyped", ngVersion.atLeast("4.0.0"));
+        additionalProperties.put("useHttpClient", ngVersion.atLeast("4.3.0"));
+        additionalProperties.put("useHttpClientPackage", ngVersion.atLeast("4.3.0") && !ngVersion.atLeast("8.0.0"));
+        if (!ngVersion.atLeast("4.3.0")) {
+            supportingFiles.add(new SupportingFile("rxjs-operators.mustache", getIndexDirectory(), "rxjs-operators.ts"));
+        }
 
         if (additionalProperties.containsKey(NPM_NAME)) {
             addNpmPackageGeneration();
@@ -114,22 +137,6 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
             }
         }
 
-        // determine NG version
-        SemVer ngVersion;
-        if (additionalProperties.containsKey(NG_VERSION)) {
-            ngVersion = new SemVer(additionalProperties.get(NG_VERSION).toString());
-        } else {
-            ngVersion = new SemVer("4.3.0");
-            LOGGER.info("generating code for Angular {} ...", ngVersion);
-            LOGGER.info("  (you can select the angular version by setting the additionalProperty ngVersion)");
-        }
-        additionalProperties.put(NG_VERSION, ngVersion);
-        additionalProperties.put("injectionToken", ngVersion.atLeast("4.0.0") ? "InjectionToken" : "OpaqueToken");
-        additionalProperties.put("injectionTokenTyped", ngVersion.atLeast("4.0.0"));
-        additionalProperties.put("useHttpClient", ngVersion.atLeast("4.3.0"));
-        if (!ngVersion.atLeast("4.3.0")) {
-            supportingFiles.add(new SupportingFile("rxjs-operators.mustache", getIndexDirectory(), "rxjs-operators.ts"));
-        }
     }
 
     private void addNpmPackageGeneration() {
@@ -156,6 +163,10 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         supportingFiles.add(new SupportingFile("package.mustache", getIndexDirectory(), "package.json"));
         supportingFiles.add(new SupportingFile("typings.mustache", getIndexDirectory(), "typings.json"));
         supportingFiles.add(new SupportingFile("tsconfig.mustache", getIndexDirectory(), "tsconfig.json"));
+        if (additionalProperties.containsKey(NG_PACKAGR)
+            && Boolean.valueOf(additionalProperties.get(NG_PACKAGR).toString())) {
+            supportingFiles.add(new SupportingFile("ng-package.mustache", getIndexDirectory(), "ng-package.json"));
+        }
     }
 
     private String getIndexDirectory() {
@@ -185,10 +196,13 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
             ArraySchema arraySchema = (ArraySchema)propertySchema;
             inner = arraySchema.getItems();
             return this.getSchemaType(propertySchema) + "<" + this.getTypeDeclaration(inner) + ">";
-        } else if(propertySchema instanceof MapSchema && propertySchema.getAdditionalProperties() != null) {
+        } else if(propertySchema instanceof MapSchema   && hasSchemaProperties(propertySchema)) {
             inner = (Schema) propertySchema.getAdditionalProperties();
             return "{ [key: string]: " + this.getTypeDeclaration(inner) + "; }";
-        } else if(propertySchema instanceof FileSchema) {
+        } else if (propertySchema instanceof MapSchema && hasTrueAdditionalProperties(propertySchema)) {
+            inner = new ObjectSchema();
+            return "{ [key: string]: " + this.getTypeDeclaration(inner) + "; }";
+        } else if(propertySchema instanceof FileSchema || propertySchema instanceof BinarySchema) {
             return "Blob";
         } else if(propertySchema instanceof ObjectSchema) {
             return "any";
@@ -368,7 +382,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
 
     @Override
     public String toApiImport(String name) {
-        return apiPackage() + File.separator + toApiFilename(name);
+        return apiPackage() + "/" + toApiFilename(name);
     }
 
     @Override
@@ -378,7 +392,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
 
     @Override
     public String toModelImport(String name) {
-        return modelPackage() + File.separator + toModelFilename(name);
+        return modelPackage() + "/" + toModelFilename(name);
     }
 
     public String getNpmName() {
